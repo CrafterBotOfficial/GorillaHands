@@ -21,7 +21,7 @@ public class HandController : MonoBehaviour
     private int layerMask = LayerMask.GetMask("Default", "Gorilla Object");
 
     private bool phasedIn = false;
-    private bool lastJoystickPressed = false;
+    private bool primaryButtonPressed = false;
     private float phaseLerp = 0f;
 
 #if DEBUG
@@ -74,7 +74,7 @@ public class HandController : MonoBehaviour
         float gripValue = ControllerInputPoller.GripFloat(inputDevice);
         animator.SetFloat("Grip", gripValue);
 
-        HandleJoystickToggle();
+        HandleHandToggle();
 
         UpdatePhaseLerp();
 
@@ -129,14 +129,14 @@ public class HandController : MonoBehaviour
             follower.position = target;
     }
 
-    private void HandleJoystickToggle()
+    private void HandleHandToggle()
     {
         bool buttonPressed = ControllerInputPoller.PrimaryButtonPress(inputDevice);
 
-        if (buttonPressed && !lastJoystickPressed)
+        if (buttonPressed && !primaryButtonPressed)
             phasedIn = !phasedIn;
 
-        lastJoystickPressed = buttonPressed;
+        primaryButtonPressed = buttonPressed;
     }
 
     private void UpdatePhaseLerp()
