@@ -1,4 +1,4 @@
-﻿using GorillaNetworking;
+﻿/*using GorillaNetworking;
 using Jerald;
 using System.Text;
 
@@ -37,4 +37,4 @@ public class ConfigPage : Page
     }
 
     public override string GetContent() => content;
-}
+}*/

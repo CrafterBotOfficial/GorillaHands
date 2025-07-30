@@ -1,22 +1,18 @@
 ﻿using BepInEx;
 using BepInEx.Logging;
-using Jerald;
 using UnityEngine;
 using Utilla.Attributes;
 
-[assembly: AutoRegister]
-
 namespace GorillaHands;
 
-[BepInPlugin("com.crafterbot.gorillahands", "GorillaHands", "1.0.0")]
+[BepInPlugin("com.chin.gorillahands", "GorillaHands", "1.0.0")]
 [BepInDependency("org.legoandmars.gorillatag.utilla", "1.6.0")]
-[BepInDependency("crafterbot.gorillatag.computer")]
 [ModdedGamemode]
 public class Main : BaseUnityPlugin
 {
     private static Main instance;
 
-    public static UnityEngine.Object HandPrefab;
+    public static UnityEngine.Object leftHandPrefab, rightHandPrefab;
     private HandController
         leftHand,
         rightHand;
@@ -30,7 +26,8 @@ public class Main : BaseUnityPlugin
             Log("Creating hands");
 
             var assetLoader = new AssetLoader("GorillaHands.Resources.hands");
-            HandPrefab = await assetLoader.LoadAsset("WhiteHand");
+            leftHandPrefab = await assetLoader.LoadAsset("LeftHand");
+            rightHandPrefab = await assetLoader.LoadAsset("RightHand");
 
             rightHand = new GameObject("Hand Controllers").AddComponent<HandController>();
             leftHand = rightHand.gameObject.AddComponent<HandController>();
