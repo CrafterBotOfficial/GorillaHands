@@ -14,28 +14,26 @@ public class HandController : MonoBehaviour
     public bool IsLeft;
     private XRNode inputDevice;
 
-    private Transform playerHand; // the players actual hand || todo: determine whether the players controller pos or hand pos works better
-    private Transform follower; // the visible hand
-    private Rigidbody followerRigidbody;
-    private Collider? followerCollider;
+    public Transform PlayerHand;
+    public Transform Follower; // The gaint hand that follows the target pos
+    public Rigidbody FollowerRigidbody;
+    public Collider? FollowerCollider;
 
     private GameObject handGeometry; // The skin mesh object
     private Animator animator;
+    private TransitionManager transitionManager;
 
     private bool anchored;
     private Vector3 anchorPoint;
     private int layerMask = LayerMask.GetMask("Default", "Gorilla Object");
 
-    private bool phasedIn;
-    private bool primaryButtonPressed = false;
-    private float phaseLerp = 0f;
+    public Vector3 TargetPosition;
 
     private const float
         followForceMultiplier = 50f,
         dampingForceMultiplier = 8f,
         maxSnapDistance = 35f,
-        rotationLerpSpeed = 0.1f,
-        phaseSpeed = 5f;
+        rotationLerpSpeed = 0.1f;
 
 #if DEBUG
     private Transform targetPosition_DebugSphere;
@@ -44,7 +42,7 @@ public class HandController : MonoBehaviour
 
     public void Start()
     {
-        playerHand = IsLeft
+        PlayerHand = IsLeft
             ? VRRigCache.Instance.localRig.transform.Find("RigAnchor/rig/body/shoulder.L/upper_arm.L/forearm.L/hand.L")
             : VRRigCache.Instance.localRig.transform.Find("RigAnchor/rig/body/shoulder.R/upper_arm.R/forearm.R/hand.R");
 
@@ -52,22 +50,24 @@ public class HandController : MonoBehaviour
             ? UnityEngine.XR.XRNode.LeftHand
             : UnityEngine.XR.XRNode.RightHand;
 
-        follower = IsLeft
+        Follower = IsLeft
             ? Instantiate(Main.leftHandPrefab as GameObject).transform
             : Instantiate(Main.rightHandPrefab as GameObject).transform;
 
         handGeometry = IsLeft
-            ? follower.Find("hands:hands_geom/hands:Lhand").gameObject
-            : follower.Find("hands:hands_geom/hands:Rhand").gameObject;
+            ? Follower.Find("hands:hands_geom/hands:Lhand").gameObject
+            : Follower.Find("hands:hands_geom/hands:Rhand").gameObject;
 
         VRRig.LocalRig.OnColorChanged += (args) => UpdateColor();
         UpdateColor();
 
-        animator = follower.GetComponent<Animator>();
-        follower.transform.localScale = Vector3.one * 8;
+        // -- Animation setup
+        animator = Follower.GetComponent<Animator>();
+        Follower.transform.localScale = Vector3.one * 8;
+        transitionManager = new TransitionManager(this, inputDevice); // for phasing in and out
 
-        followerRigidbody = follower.AddComponent<Rigidbody>();
-        followerRigidbody.useGravity = false;
+        FollowerRigidbody = Follower.AddComponent<Rigidbody>();
+        FollowerRigidbody.useGravity = false;
 
         if (Configuration.HandCollisions.Value)
             SetupColliders();
@@ -88,29 +88,14 @@ public class HandController : MonoBehaviour
 #if DEBUG
         targetPosition_DebugSphere.position = CalcTargetPosition();
 #endif
+        TargetPosition = CalcTargetPosition();
 
         float gripValue = ControllerInputPoller.GripFloat(inputDevice);
         animator.SetFloat("Grip", gripValue);
 
-        HandleHandToggle();
-
-        UpdatePhaseLerp();
-
-        // Moves hand to correct pos
-        if (phaseLerp > 0f)
-        {
-            Vector3 phaseTarget = Vector3.Lerp(CalcTargetPosition(), playerHand.position, phaseLerp);
-            follower.position = phaseTarget;
-
-            Vector3 handRotationOffset = IsLeft ? new Vector3(-90, 180, 90) : new Vector3(-90, 180, -90);
-            Quaternion targetRotation = playerHand.rotation * Quaternion.Euler(handRotationOffset);
-            follower.rotation = Quaternion.Lerp(follower.rotation, targetRotation.normalized, phaseLerp);
-
-            followerRigidbody.velocity = Vector3.zero;
-
-            if (phaseLerp >= 1f)
-                return;
-        }
+        // Hand open/close transitions/animations are handled by IsAnimating
+        if (transitionManager.IsAnimating() || transitionManager.HandHidden()) 
+            return;
 
         if (ControllerInputPoller.GetGrab(inputDevice))
         {
@@ -123,9 +108,9 @@ public class HandController : MonoBehaviour
                 ApplyClimbForceToPlayer();
                 return;
             }
-            else if (touchingTerrain)
+            else if (touchingTerrain) // mainly for when colliders are disabled, so we can prob get rid of this
             {
-                AnchorHandAt(follower.position);
+                AnchorHandAt(Follower.position);
                 ApplyClimbForceToPlayer();
                 return;
             }
@@ -139,78 +124,65 @@ public class HandController : MonoBehaviour
         }
 
         // Todo: add player speed to hand speed to ensure they dont get left behind when moving fast
-        Vector3 target = CalcTargetPosition();
-        Vector3 offset = target - follower.position;
-        Vector3 force = offset * followForceMultiplier - followerRigidbody.velocity * dampingForceMultiplier;
+        Vector3 offset = TargetPosition - Follower.position;
+        Vector3 force = offset * followForceMultiplier - FollowerRigidbody.velocity * dampingForceMultiplier;
 
-        followerRigidbody.AddForce(force, ForceMode.Acceleration);
+        FollowerRigidbody.AddForce(force, ForceMode.Acceleration);
 
         // Follower rotation handler
-        Vector3 rotationOffset = IsLeft ? new Vector3(-90, 180, 90) : new Vector3(-90, 180, -90);
-        Quaternion desiredRotation = playerHand.rotation * Quaternion.Euler(rotationOffset);
-        followerRigidbody.freezeRotation = true;
-        follower.rotation = Quaternion.Lerp(follower.rotation, desiredRotation.normalized, rotationLerpSpeed);
+        ApplyRotationaryForce();
 
         // iirc this was intended to stop the hands from getting stuck, should be moved up
-        if (Vector3.Distance(follower.position, target) > maxSnapDistance)
-            follower.position = target;
+        if (Vector3.Distance(Follower.position, TargetPosition) > maxSnapDistance)
+            Follower.position = TargetPosition;
     }
 
     private void AnchorHandAt(Vector3 position)
     {
         anchored = true;
         SetCollidersActive(false); // Stops hand from randomly rotating when anchre
-        follower.position = position;
-        followerRigidbody.velocity = Vector3.zero;
-        followerRigidbody.angularVelocity = Vector3.zero;
+        Follower.position = position;
+        FollowerRigidbody.velocity = Vector3.zero;
+        FollowerRigidbody.angularVelocity = Vector3.zero;
+    }
+
+    public void ApplyRotationaryForce() {
+        Vector3 rotationOffset = IsLeft ? new Vector3(-90, 180, 90) : new Vector3(-90, 180, -90);
+        Quaternion desiredRotation = PlayerHand.rotation * Quaternion.Euler(rotationOffset);
+        FollowerRigidbody.freezeRotation = true;
+        Follower.rotation = Quaternion.Lerp(Follower.rotation, desiredRotation.normalized, rotationLerpSpeed);
     }
 
     // Todo: Chin make meshcollider in prefab so we can skip all dis
     // (done?) Todo: fix rotation getting all outda wak when collider touches something or anchored
+    // Todo: Test release build to ensure colliders FEEL correct
     private void SetupColliders()
     {
 #if DEBUG
-        followerCollider = CreateDebugSphere(Color.white, true, false, true).GetComponent<Collider>();//GameObject.CreatePrimitive(PrimitiveType.Cube);
+        FollowerCollider = CreateDebugSphere(Color.white, true, false, true).GetComponent<Collider>();//GameObject.CreatePrimitive(PrimitiveType.Cube);
 #else
-        followerCollider = GameObject.CreatePrimitive(PrimitiveType.Cube).GetComponent<Collider>();
+        FollowerCollider = GameObject.CreatePrimitive(PrimitiveType.Cube).GetComponent<Collider>();
 #endif
-        followerCollider.transform.SetParent(follower, false);
-        followerCollider.transform.localScale = new Vector3(.12f, .12f / 2.5f, .12f); // 1/8=.125, hands are initially scaled by 8
-        followerCollider.transform.localPosition = IsLeft ? new Vector3(-.02f, .045f, 0) : new Vector3(.02f, .045f, 0);
-        followerCollider.includeLayers = layerMask;
+        FollowerCollider.transform.SetParent(Follower, false);
+        FollowerCollider.transform.localScale = new Vector3(.12f, .12f / 2.5f, .12f); // 1/8=.125, hands are initially scaled by 8
+        FollowerCollider.transform.localPosition = IsLeft ? new Vector3(-.02f, .045f, 0) : new Vector3(.02f, .045f, 0);
+        FollowerCollider.includeLayers = layerMask;
     }
 
     // todo: rename
-    private void SetCollidersActive(bool value) {
-        if (followerCollider is null) return;
+    private void SetCollidersActive(bool value)
+    {
+        if (FollowerCollider is null) return;
         // Handle rigidbody prepping for anchroing
-        followerRigidbody.isKinematic = !value;
-    }
-
-    private void HandleHandToggle()
-    {
-        bool buttonPressed = ControllerInputPoller.PrimaryButtonPress(inputDevice);
-        if (buttonPressed && !primaryButtonPressed)
-            phasedIn = !phasedIn;
-        primaryButtonPressed = buttonPressed;
-    }
-
-    private void UpdatePhaseLerp()
-    {
-        float target = phasedIn ? 1f : 0f;
-
-        phaseLerp = Mathf.MoveTowards(phaseLerp, target, Time.fixedDeltaTime * (phaseSpeed * 0.6f));
-
-        float scale = Mathf.Lerp(8f, 0f, phaseLerp);
-        follower.localScale = Vector3.one * scale;
+        FollowerRigidbody.isKinematic = !value;
     }
 
     private bool TryRaycastToTerrain(out Vector3 hitPoint)
     {
-        var direction = -follower.up; // from palm
+        var direction = -Follower.up; // from palm
         float distance = .5f; // Todo: make configurable
 
-        Ray ray = new Ray(follower.position, direction);
+        Ray ray = new Ray(Follower.position, direction);
         if (Physics.Raycast(ray, out RaycastHit hit, distance, layerMask))
         {
             hitPoint = hit.point;
@@ -223,47 +195,39 @@ public class HandController : MonoBehaviour
         hitPoint = Vector3.zero;
         return false;
     }
-    
+
     // Todo: only use raycasting for finding terrain to anchor to
     private bool IsTouchingTerrain()
     {
         float radius = 0.15f;
-        Collider[] hits = Physics.OverlapSphere(follower.position, radius, layerMask);
-        if (followerCollider is not null) return hits.Any(hit => hit.GetComponent<MeshRenderer>() && hit != followerCollider.gameObject);
-        else return hits.Any(hit => hit.GetComponent<MeshRenderer>() && hit); 
+        Collider[] hits = Physics.OverlapSphere(Follower.position, radius, layerMask);
+        if (FollowerCollider is not null) return hits.Any(hit => hit.GetComponent<MeshRenderer>() && hit != FollowerCollider.gameObject);
+        else return hits.Any(hit => hit.GetComponent<MeshRenderer>() && hit);
     }
 
     private void ApplyClimbForceToPlayer()
     {
         Vector3 basePoint = GTPlayer.Instance.bodyCollider.transform.position;
-        Vector3 direction = basePoint - playerHand.position;
-        Vector3 targetVelocity = direction * Configuration.ArmOffsetMultiplier.Value + follower.position;
+        Vector3 direction = basePoint - PlayerHand.position;
+        Vector3 targetVelocity = direction * Configuration.ArmOffsetMultiplier.Value + Follower.position;
         GTPlayer.Instance.playerRigidBody.velocity = targetVelocity - GTPlayer.Instance.playerRigidBody.position;
     }
 
     private Vector3 CalcTargetPosition()
     {
         Vector3 playerPosition = GTPlayer.Instance.bodyCollider.transform.position - new Vector3(0, 0.05f, 0);
-        Vector3 playerToRealHandDirection = playerHand.position - playerPosition;
+        Vector3 playerToRealHandDirection = PlayerHand.position - playerPosition;
         return playerPosition + playerToRealHandDirection * (Configuration.ArmOffsetMultiplier.Value);
     }
 
-
     public void UpdateColor()
     {
-        if (follower is Transform && handGeometry.GetComponent<SkinnedMeshRenderer>() is SkinnedMeshRenderer renderer)
+        if (Follower is Transform && handGeometry.GetComponent<SkinnedMeshRenderer>() is SkinnedMeshRenderer renderer)
             renderer.material.color = GorillaTagger.Instance.offlineVRRig.playerColor;
     }
 
-    private void OnEnable()
-    {
-        follower?.gameObject.SetActive(true);
-    }
-
-    private void OnDisable()
-    {
-        follower.gameObject.SetActive(false);
-    }
+    private void OnEnable() { Follower?.gameObject.SetActive(true); }
+    private void OnDisable() { Follower.gameObject.SetActive(false); }
 
 #if DEBUG
     public Transform CreateDebugSphere(Color color, bool actuallyMakeItACube = false, bool removeCollider = true, bool actuallyDontShrinkIt = false)
