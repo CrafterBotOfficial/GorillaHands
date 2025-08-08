@@ -26,7 +26,7 @@ public class HandController : MonoBehaviour
     private Vector3 anchorPoint;
     private int layerMask = LayerMask.GetMask("Default", "Gorilla Object");
 
-    private bool phasedIn = false;
+    private bool phasedIn;
     private bool primaryButtonPressed = false;
     private float phaseLerp = 0f;
 
