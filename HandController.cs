@@ -29,12 +29,6 @@ public class HandController : MonoBehaviour
 
     public Vector3 TargetPosition;
 
-    private const float
-        followForceMultiplier = 50f,
-        dampingForceMultiplier = 8f,
-        maxSnapDistance = 35f,
-        rotationLerpSpeed = 0.1f;
-
 #if DEBUG
     private Transform targetPosition_DebugSphere;
     private LineRenderer lineRenderer_Debug;
@@ -97,6 +91,10 @@ public class HandController : MonoBehaviour
         if (transitionManager.IsAnimating() || transitionManager.HandHidden()) 
             return;
 
+        // If the hand gets stuck, free it
+        if (Vector3.Distance(Follower.position, TargetPosition) > Configuration.HandStuckDistanceThreshold.Value)
+            Follower.position = TargetPosition;
+
         if (ControllerInputPoller.GetGrab(inputDevice))
         {
             bool touchingTerrain = IsTouchingTerrain();
@@ -125,16 +123,12 @@ public class HandController : MonoBehaviour
 
         // Todo: add player speed to hand speed to ensure they dont get left behind when moving fast
         Vector3 offset = TargetPosition - Follower.position;
-        Vector3 force = offset * followForceMultiplier - FollowerRigidbody.velocity * dampingForceMultiplier;
+        Vector3 force = offset * Configuration.FollowForceMultiplier.Value - FollowerRigidbody.velocity * Configuration.DampingForceMultiplier.Value;
 
         FollowerRigidbody.AddForce(force, ForceMode.Acceleration);
 
         // Follower rotation handler
         ApplyRotationaryForce();
-
-        // iirc this was intended to stop the hands from getting stuck, should be moved up
-        if (Vector3.Distance(Follower.position, TargetPosition) > maxSnapDistance)
-            Follower.position = TargetPosition;
     }
 
     private void AnchorHandAt(Vector3 position)
@@ -150,7 +144,7 @@ public class HandController : MonoBehaviour
         Vector3 rotationOffset = IsLeft ? new Vector3(-90, 180, 90) : new Vector3(-90, 180, -90);
         Quaternion desiredRotation = PlayerHand.rotation * Quaternion.Euler(rotationOffset);
         FollowerRigidbody.freezeRotation = true;
-        Follower.rotation = Quaternion.Lerp(Follower.rotation, desiredRotation.normalized, rotationLerpSpeed);
+        Follower.rotation = Quaternion.Lerp(Follower.rotation, desiredRotation.normalized, Configuration.RotationLerpAmount.Value);
     }
 
     // Todo: Chin make meshcollider in prefab so we can skip all dis
