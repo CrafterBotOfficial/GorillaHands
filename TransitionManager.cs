@@ -11,10 +11,6 @@ public class TransitionManager
     private HandState handState;
     private float transitionT;
 
-    private float 
-        rotationLerpSpeed = 0.1f,
-        transitionSpeed = 5f;
-
     public TransitionManager(HandController controller, XRNode inputDevice)
     {
         Controller = controller;
@@ -53,7 +49,7 @@ public class TransitionManager
     {
         // hand scale
         float scaleTarget = handState == HandState.Opening ? 0f : 1f;
-        transitionT = Mathf.MoveTowards(transitionT, scaleTarget, Time.fixedDeltaTime * (transitionSpeed * 0.6f)); // Chin, what is 0.6 from?
+        transitionT = Mathf.MoveTowards(transitionT, scaleTarget, Time.fixedDeltaTime * (Configuration.TransitionSpeed.Value * 0.6f)); // Chin, what is 0.6 from?
         float scale = Mathf.Lerp(8f, 0f, transitionT);
         Controller.Follower.localScale = Vector3.one * scale;
 
