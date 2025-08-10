@@ -54,7 +54,7 @@
       <HintPath>$(GamePath)Gorilla Tag_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
     </Reference>
     <Reference Include="Utilla">
-      <HintPath>$(GamePath)BepInEx\plugins\Utilla.dll</HintPath>
+        <HintPath>$(GamePath)/BepInEx\plugins\Utilla\Utilla.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine">
       <HintPath>$(GamePath)\Gorilla Tag_Data\Managed\UnityEngine.dll</HintPath>

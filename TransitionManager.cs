@@ -53,6 +53,7 @@ public class TransitionManager
         float scale = Mathf.Lerp(8f, 0f, transitionT);
         Controller.Follower.localScale = Vector3.one * scale;
 
+        // todo: hands should phase in (close) from there actual position, not the target pos. (when the hands get stuck it looks ugly)
         // hand movement
         Vector3 phaseTarget = Vector3.Lerp(Controller.TargetPosition, Controller.PlayerHand.position,  transitionT);
         Controller.Follower.position = phaseTarget;

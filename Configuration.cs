@@ -13,6 +13,7 @@ public static class Configuration
     public static ConfigEntry<float> DampingForceMultiplier;
 
     public static ConfigEntry<bool> HandCollisions;
+    public static ConfigEntry<float> HandSpherecastRadius;
 
     public static ConfigEntry<float> HandStuckDistanceThreshold;
     public static ConfigEntry<float> RotationLerpAmount;
@@ -27,8 +28,10 @@ public static class Configuration
         FollowForceMultiplier = config.Bind("Multipliers", "Follow Force", 50f, "The force the hand uses to get to the target pos");
         DampingForceMultiplier = config.Bind("Multipliers", "Damping Mult", 8f);
 
-        HandCollisions = config.Bind("Collisions", "Can hand interact with other surfaces?", true);
-        HandStuckDistanceThreshold = config.Bind("Misc", "HandStuckDistanceThreshold", 15f, "How fare can the hand get before it teleports back."); // Todo: 35 seems exceisive
+        HandCollisions = config.Bind("Collisions", "Hand collisions", true, "Can hand interact with other surfaces?");
+        HandSpherecastRadius = config.Bind("Collisions", "Spherecast Radius", .35f);
+
+        HandStuckDistanceThreshold = config.Bind("Misc", "HandStuckDistanceThreshold", 15f, "How fare can the hand get before it teleports back.");
         RotationLerpAmount = config.Bind("Misc", "Rotation Lerp Amount", .1f, "Speed that the hands will rotate to match the real player hands.");
         TransitionSpeed = config.Bind("Misc", "Transition Speed", 8f, "The speed the hands will appear/disappear when you press the button.");
     }

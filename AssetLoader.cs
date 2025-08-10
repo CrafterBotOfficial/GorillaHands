@@ -10,7 +10,6 @@ public class AssetLoader
 
     public AssetLoader(string resourcePath)
     {
-        // todo: rewrite to avoid stopping the game
         using Stream assetReaderStream = typeof(AssetLoader).Assembly.GetManifestResourceStream(resourcePath);
         bundle = AssetBundle.LoadFromStream(assetReaderStream);
     }
@@ -21,9 +20,5 @@ public class AssetLoader
         AssetBundleRequest request = bundle.LoadAssetAsync(name);
         request.completed += operation => taskCompletionSource.SetResult(request.asset);
         return taskCompletionSource.Task;
-    }
-
-    public void Dispose()
-    {
     }
 }
