@@ -9,7 +9,7 @@ public static class Configuration
 
     public static ConfigEntry<float> ArmOffsetMultiplier;
     public static ConfigEntry<float> VelocityMultiplierOnRelease;
-    public static ConfigEntry<float> FollowForceMultiplier; 
+    public static ConfigEntry<float> FollowForceMultiplier;
     public static ConfigEntry<float> DampingForceMultiplier;
 
     public static ConfigEntry<bool> HandCollisions;
@@ -17,7 +17,7 @@ public static class Configuration
 
     public static ConfigEntry<float> HandStuckDistanceThreshold;
     public static ConfigEntry<float> RotationLerpAmount;
-    public static ConfigEntry<float> TransitionSpeed; 
+    public static ConfigEntry<float> TransitionSpeed;
 
     internal static void Initialize(ConfigFile config)
     {
