@@ -22,13 +22,13 @@ public class HandController : MonoBehaviour
 
     private bool anchored;
     private Vector3 anchorPoint;
-    private int layerMask = LayerMask.GetMask("Default", "Gorilla Object");
+    public int TerrainLayers = LayerMask.GetMask("Default", "Gorilla Object");
 
     public Vector3 TargetPosition;
 
 #if DEBUG
     private Transform targetPosition_DebugSphere;
-    private LineRenderer lineRenderer_Debug;
+    private LineRenderer lineRenderer_HandTouchTerrain_Debug;
 #endif 
 
     public void Start()
@@ -66,20 +66,17 @@ public class HandController : MonoBehaviour
 #if DEBUG
         Main.Log("Debug enabled, creating debug objects", BepInEx.Logging.LogLevel.Message);
         targetPosition_DebugSphere = CreateDebugSphere(Color.white, removeCollider: true);
-        lineRenderer_Debug = new GameObject("raytester9000").AddComponent<LineRenderer>();
-        lineRenderer_Debug.startColor = Color.red;
-        lineRenderer_Debug.endColor = Color.blue;
-        lineRenderer_Debug.material.shader = Shader.Find("GorillaTag/UberShader");
-        lineRenderer_Debug.widthCurve = AnimationCurve.Constant(1, 1, Configuration.HandSpherecastRadius.Value); // .2f matching spherecast width
+        lineRenderer_HandTouchTerrain_Debug = CreateDebugLine(Configuration.HandSpherecastRadius.Value);
 #endif
     }
 
     public void FixedUpdate()
     {
-#if DEBUG
-        targetPosition_DebugSphere.position = CalcTargetPosition();
-#endif
         TargetPosition = CalcTargetPosition();
+
+#if DEBUG
+        targetPosition_DebugSphere.position = TargetPosition;
+#endif
 
         float gripValue = ControllerInputPoller.GripFloat(inputDevice);
         animator.SetFloat("Grip", gripValue);
@@ -110,7 +107,7 @@ public class HandController : MonoBehaviour
             }
         }
 
-        // todo: verifiy removing this fdoesnt breqk gtdrijkergipoungiouernthinrw everything
+        // todo: verifiy removing on release fdoesnt breqk gtdrijkergipoungiouernthinrw everything
         if (anchored) // && ControllerInputPoller.GetGrabRelease(inputDevice))
         {
             anchored = false;
@@ -134,7 +131,8 @@ public class HandController : MonoBehaviour
 
     private void AnchorHandAt(Vector3 position)
     {
-        if (!anchored) {
+        if (!anchored)
+        {
             SetCollidersActive(false); // Stops hand from randomly rotating when anchre
         }
         anchored = true;
@@ -143,7 +141,8 @@ public class HandController : MonoBehaviour
         // FollowerRigidbody.angularVelocity = Vector3.zero;
     }
 
-    public void ApplyRotationaryForce() {
+    public void ApplyRotationaryForce()
+    {
         Vector3 rotationOffset = IsLeft ? new Vector3(-90, 180, 90) : new Vector3(-90, 180, -90);
         Quaternion desiredRotation = PlayerHand.rotation * Quaternion.Euler(rotationOffset);
         FollowerRigidbody.freezeRotation = true;
@@ -163,7 +162,7 @@ public class HandController : MonoBehaviour
         FollowerCollider.transform.SetParent(Follower, false);
         FollowerCollider.transform.localScale = new Vector3(.12f, .12f / 2.5f, .12f); // 1/8=.125, hands are initially scaled by 8
         FollowerCollider.transform.localPosition = IsLeft ? new Vector3(-.02f, .045f, 0) : new Vector3(.02f, .045f, 0);
-        FollowerCollider.includeLayers = layerMask;
+        FollowerCollider.includeLayers = TerrainLayers;
     }
 
     // todo: rename
@@ -180,11 +179,11 @@ public class HandController : MonoBehaviour
         const float distance = .5f; // Todo: make configurable
 
         Ray ray = new Ray(Follower.position, direction);
-        if (Physics.SphereCast(ray, Configuration.HandSpherecastRadius.Value, out RaycastHit hit, distance, layerMask))
+        if (Physics.SphereCast(ray, Configuration.HandSpherecastRadius.Value, out RaycastHit hit, distance, TerrainLayers))
         {
             hitPoint = hit.point;
 #if DEBUG
-            lineRenderer_Debug.SetPositions([ray.origin, hit.point]);
+            lineRenderer_HandTouchTerrain_Debug.SetPositions([ray.origin, hit.point]);
 #endif
             return true;
         }
@@ -197,7 +196,7 @@ public class HandController : MonoBehaviour
     private bool IsTouchingTerrain()
     {
         float radius = 0.15f;
-        Collider[] hits = Physics.OverlapSphere(Follower.position, radius, layerMask);
+        Collider[] hits = Physics.OverlapSphere(Follower.position, radius, TerrainLayers);
         if (FollowerCollider is not null) return hits.Any(hit => hit.GetComponent<MeshRenderer>() && hit != FollowerCollider.gameObject);
         else return hits.Any(hit => hit.GetComponent<MeshRenderer>() && hit);
     }
@@ -227,6 +226,14 @@ public class HandController : MonoBehaviour
     private void OnDisable() { Follower.gameObject.SetActive(false); }
 
 #if DEBUG
+    public LineRenderer CreateDebugLine(float width)
+    {
+        var line = new GameObject("raytester9000").AddComponent<LineRenderer>();
+        line.material.shader = Shader.Find("GorillaTag/UberShader");
+        line.widthCurve = AnimationCurve.Constant(1, 1, width);
+        return line;
+    }
+
     public Transform CreateDebugSphere(Color color, bool actuallyMakeItACube = false, bool removeCollider = true, bool actuallyDontShrinkIt = false)
     {
         var sphere = GameObject.CreatePrimitive(actuallyMakeItACube ? PrimitiveType.Cube : PrimitiveType.Sphere).transform;
