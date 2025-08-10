@@ -25,7 +25,7 @@ public class Main : BaseUnityPlugin
         {
             Log("Creating hands");
 
-            var assetLoader = new AssetLoader("GorillaHands.Resources.hands");
+            using var assetLoader = new AssetLoader("GorillaHands.Resources.hands");
             leftHandPrefab = await assetLoader.LoadAsset("LeftHand");
             rightHandPrefab = await assetLoader.LoadAsset("RightHand");
 
