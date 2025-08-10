@@ -1,10 +1,11 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Threading.Tasks;
 using UnityEngine;
 
 namespace GorillaHands;
 
-public class AssetLoader
+public class AssetLoader : IDisposable
 {
     private AssetBundle bundle;
 
@@ -20,5 +21,10 @@ public class AssetLoader
         AssetBundleRequest request = bundle.LoadAssetAsync(name);
         request.completed += operation => taskCompletionSource.SetResult(request.asset);
         return taskCompletionSource.Task;
+    }
+
+    public void Dispose()
+    {
+        bundle.Unload(false);
     }
 }

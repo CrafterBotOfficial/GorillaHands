@@ -1,5 +1,4 @@
-﻿// this class should be completely independent from the transition manager
-using GorillaLocomotion;
+﻿using GorillaLocomotion;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.XR;
@@ -17,8 +16,7 @@ public class HandController : MonoBehaviour
     public Collider? FollowerCollider;
 
     private GameObject handGeometry; // The skin mesh object
-    private Animator animator;
-    private TransitionManager transitionManager;
+    private AnimationManager animationManager;
 
     private bool anchored;
     private Vector3 anchorPoint;
@@ -27,6 +25,7 @@ public class HandController : MonoBehaviour
     public Vector3 TargetPosition;
 
 #if DEBUG
+    private const string DEBUG_OBJECT_SHADER = "GorillaTag/UberShader";
     private Transform targetPosition_DebugSphere;
     private LineRenderer lineRenderer_HandTouchTerrain_Debug;
 #endif 
@@ -53,11 +52,12 @@ public class HandController : MonoBehaviour
         UpdateColor();
 
         // -- Animation setup
-        animator = Follower.GetComponent<Animator>();
-        Follower.transform.localScale = Vector3.one * 8;
-        transitionManager = new TransitionManager(this, inputDevice); // for phasing in and out
+        animationManager = this.AddComponent<AnimationManager>();
+        animationManager.Controller = this;
+        animationManager.InputDevice = inputDevice;
 
         FollowerRigidbody = Follower.AddComponent<Rigidbody>();
+        FollowerRigidbody.freezeRotation = true;
         FollowerRigidbody.useGravity = false;
 
         if (Configuration.HandCollisions.Value)
@@ -72,17 +72,14 @@ public class HandController : MonoBehaviour
 
     public void FixedUpdate()
     {
-        TargetPosition = CalcTargetPosition();
+        TargetPosition = CalculateTargetPosition();
 
 #if DEBUG
         targetPosition_DebugSphere.position = TargetPosition;
 #endif
 
-        float gripValue = ControllerInputPoller.GripFloat(inputDevice);
-        animator.SetFloat("Grip", gripValue);
-
         // Hand open/close transitions/animations are handled by IsAnimating
-        if (transitionManager.IsAnimating() || transitionManager.HandHidden()) // Todo: I dislike having the handhidden check within the transition manager. Hand state should be manged here
+        if (animationManager.IsAnimating() || animationManager.HandHidden()) // Todo: I dislike having the handhidden check within the transition manager. Hand state should be manged here
             return;
 
         // todo: test in breach map to ensure this isnt annoying as hell, since it will kick you out of climb state if
@@ -107,8 +104,7 @@ public class HandController : MonoBehaviour
             }
         }
 
-        // todo: verifiy removing on release fdoesnt breqk gtdrijkergipoungiouernthinrw everything
-        if (anchored) // && ControllerInputPoller.GetGrabRelease(inputDevice))
+        if (anchored)
         {
             anchored = false;
             SetCollidersActive(true);
@@ -116,6 +112,7 @@ public class HandController : MonoBehaviour
         }
 
         // If the hand gets stuck, free it
+        // Todo: Investigate having a mixed system where the hand's collider cant temp turn off to reach the target, but then if it gets to fare it tps
         if (Vector3.Distance(Follower.position, TargetPosition) > Configuration.HandStuckDistanceThreshold.Value)
             Follower.position = TargetPosition;
 
@@ -125,7 +122,6 @@ public class HandController : MonoBehaviour
 
         FollowerRigidbody.AddForce(force, ForceMode.Acceleration);
 
-        // Follower rotation handler
         ApplyRotationaryForce();
     }
 
@@ -145,7 +141,6 @@ public class HandController : MonoBehaviour
     {
         Vector3 rotationOffset = IsLeft ? new Vector3(-90, 180, 90) : new Vector3(-90, 180, -90);
         Quaternion desiredRotation = PlayerHand.rotation * Quaternion.Euler(rotationOffset);
-        FollowerRigidbody.freezeRotation = true;
         Follower.rotation = Quaternion.Lerp(Follower.rotation, desiredRotation.normalized, Configuration.RotationLerpAmount.Value);
     }
 
@@ -192,7 +187,6 @@ public class HandController : MonoBehaviour
         return false;
     }
 
-    // Todo: only use raycasting for finding terrain to anchor to
     private bool IsTouchingTerrain()
     {
         float radius = 0.15f;
@@ -209,13 +203,14 @@ public class HandController : MonoBehaviour
         GTPlayer.Instance.playerRigidBody.velocity = targetVelocity - GTPlayer.Instance.playerRigidBody.position;
     }
 
-    private Vector3 CalcTargetPosition()
+    private Vector3 CalculateTargetPosition()
     {
         Vector3 playerPosition = GTPlayer.Instance.bodyCollider.transform.position - new Vector3(0, 0.05f, 0);
         Vector3 playerToRealHandDirection = PlayerHand.position - playerPosition;
         return playerPosition + playerToRealHandDirection * (Configuration.ArmOffsetMultiplier.Value);
     }
 
+    // Chin, change this so it uses the player material. Im not sure if the asset will allow for it so its up to you
     public void UpdateColor()
     {
         if (Follower is Transform && handGeometry.GetComponent<SkinnedMeshRenderer>() is SkinnedMeshRenderer renderer)
@@ -229,7 +224,7 @@ public class HandController : MonoBehaviour
     public LineRenderer CreateDebugLine(float width)
     {
         var line = new GameObject("raytester9000").AddComponent<LineRenderer>();
-        line.material.shader = Shader.Find("GorillaTag/UberShader");
+        line.material.shader = Shader.Find(DEBUG_OBJECT_SHADER);
         line.widthCurve = AnimationCurve.Constant(1, 1, width);
         return line;
     }
@@ -241,7 +236,7 @@ public class HandController : MonoBehaviour
         if (removeCollider) Destroy(sphere.GetComponent<Collider>());
 
         var material = sphere.GetComponent<Renderer>().material;
-        material.shader = Shader.Find("GorillaTag/UberShader");
+        material.shader = Shader.Find(DEBUG_OBJECT_SHADER);
         material.color = color;
 
         return sphere;

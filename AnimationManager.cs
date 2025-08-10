@@ -1,9 +1,10 @@
+// State manager should be moved to the hand class
 using UnityEngine;
 using UnityEngine.XR;
 
 namespace GorillaHands;
 
-public class TransitionManager
+public class AnimationManager : MonoBehaviour
 {
     public HandController Controller;
     public XRNode InputDevice;
@@ -12,21 +13,38 @@ public class TransitionManager
     private float transitionT;
     private Vector3 targetPosition;
 
+    private Animator animator;
+
 #if DEBUG
     private LineRenderer lineRenderer_PlayerHandToTargetPos_Debug;
 #endif
 
-    public TransitionManager(HandController controller, XRNode inputDevice)
+    //     public AnimationManager(HandController controller, XRNode inputDevice)
+    //     {
+    //         Controller = controller;
+    //         InputDevice = inputDevice;
+    //         handState = HandState.Closed;
+    // #if DEBUG
+    //         lineRenderer_PlayerHandToTargetPos_Debug = Controller.CreateDebugLine(.1f);
+    // #endif
+    //     }
+    //
+    private void Start()
     {
-        Controller = controller;
-        InputDevice = inputDevice;
-        handState = HandState.Closed;
+        animator = Controller.Follower.GetComponent<Animator>();
+        Controller.Follower.transform.localScale = Vector3.one * 8;
 #if DEBUG
         lineRenderer_PlayerHandToTargetPos_Debug = Controller.CreateDebugLine(.1f);
 #endif
     }
 
     public bool HandHidden() => handState == HandState.Closed;
+
+    public void Update()
+    {
+        float gripValue = ControllerInputPoller.GripFloat(InputDevice);
+        animator.SetFloat("Grip", gripValue);
+    }
 
     public bool IsAnimating()
     {

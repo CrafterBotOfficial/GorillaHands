@@ -6,7 +6,7 @@
 
     <GamePath>/home/crafterbot/.local/share/Steam/steamapps/common/Gorilla Tag/</GamePath>
 
-    <NoWarn>CS8632</NoWarn>
+    <NoWarn>CS8632</NoWarn> <!-- I forgot to comment what this was for and Im to lazy to look it up. I guess it will stay here forever -->
 </PropertyGroup>
 
    <!-- Output -->
@@ -27,7 +27,6 @@
   <!-- Dependencies -->
   <ItemGroup>
     <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.2" PrivateAssets="all" />
-    <PackageReference Include="System.Reflection.Emit.ILGeneration" Version="4.7.0" />
 
     <Reference Include="0Harmony">
       <HintPath>$(GamePath)\BepInEx\core\0Harmony.dll</HintPath>

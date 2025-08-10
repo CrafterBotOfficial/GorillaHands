@@ -1,5 +1,4 @@
-﻿// todo: rename everything 
-using BepInEx.Configuration;
+﻿using BepInEx.Configuration;
 
 namespace GorillaHands;
 
@@ -23,7 +22,7 @@ public static class Configuration
     {
         Config = config;
 
-        ArmOffsetMultiplier = config.Bind("Multipliers", "Arm Offset", 12f);
+        ArmOffsetMultiplier = config.Bind("Multipliers", "Arm Offset", 12f); // todo: investigate this default value, Im not totally convinced its best
         VelocityMultiplierOnRelease = config.Bind("Multipliers", "Booster", 2f, "The velocity multiplier for when you stop climbing.");
         FollowForceMultiplier = config.Bind("Multipliers", "Follow Force", 50f, "The force the hand uses to get to the target pos");
         DampingForceMultiplier = config.Bind("Multipliers", "Damping Mult", 8f);
