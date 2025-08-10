@@ -10,7 +10,7 @@ namespace GorillaHands;
 [ModdedGamemode]
 public class Main : BaseUnityPlugin
 {
-    public static Main instance;
+    private static Main instance;
 
     public static UnityEngine.Object leftHandPrefab, rightHandPrefab;
     public HandController
@@ -21,7 +21,6 @@ public class Main : BaseUnityPlugin
     {
         instance = this;
         Configuration.Initialize(Config);
-        HarmonyLib.Harmony.CreateAndPatchAll(typeof(Main).Assembly);
         Utilla.Events.GameInitialized += async (sender, args) =>
         {
             Log("Creating hands");

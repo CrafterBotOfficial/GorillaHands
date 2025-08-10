@@ -1,7 +1,4 @@
-﻿/*
- * Todo: Ensure if hands are closed all movement affects stop
- */
-
+﻿// this class should be completely independent from the transition manager
 using GorillaLocomotion;
 using System.Linq;
 using UnityEngine;
@@ -73,7 +70,7 @@ public class HandController : MonoBehaviour
         lineRenderer_Debug.startColor = Color.red;
         lineRenderer_Debug.endColor = Color.blue;
         lineRenderer_Debug.material.shader = Shader.Find("GorillaTag/UberShader");
-        lineRenderer_Debug.widthCurve = AnimationCurve.Constant(1, 1, .1f);
+        lineRenderer_Debug.widthCurve = AnimationCurve.Constant(1, 1, Configuration.HandSpherecastRadius.Value); // .2f matching spherecast width
 #endif
     }
 
@@ -88,14 +85,13 @@ public class HandController : MonoBehaviour
         animator.SetFloat("Grip", gripValue);
 
         // Hand open/close transitions/animations are handled by IsAnimating
-        if (transitionManager.IsAnimating() || transitionManager.HandHidden()) 
+        if (transitionManager.IsAnimating() || transitionManager.HandHidden()) // Todo: I dislike having the handhidden check within the transition manager. Hand state should be manged here
             return;
 
-        // If the hand gets stuck, free it
-        if (Vector3.Distance(Follower.position, TargetPosition) > Configuration.HandStuckDistanceThreshold.Value)
-            Follower.position = TargetPosition;
-
-        if (ControllerInputPoller.GetGrab(inputDevice))
+        // todo: test in breach map to ensure this isnt annoying as hell, since it will kick you out of climb state if
+        // you grab something else
+        bool grabbingAllowed = !GTPlayer.Instance.isClimbing; // todo: add any other dangerous interactions
+        if (ControllerInputPoller.GetGrab(inputDevice) && grabbingAllowed)
         {
             bool touchingTerrain = IsTouchingTerrain();
             if (!touchingTerrain && TryRaycastToTerrain(out Vector3 hitPoint))
@@ -114,16 +110,21 @@ public class HandController : MonoBehaviour
             }
         }
 
-        if (anchored && ControllerInputPoller.GetGrabRelease(inputDevice))
+        // todo: verifiy removing this fdoesnt breqk gtdrijkergipoungiouernthinrw everything
+        if (anchored) // && ControllerInputPoller.GetGrabRelease(inputDevice))
         {
             anchored = false;
             SetCollidersActive(true);
             GTPlayer.Instance.playerRigidBody.velocity *= Configuration.VelocityMultiplierOnRelease.Value; // Release multiplier
         }
 
-        // Todo: add player speed to hand speed to ensure they dont get left behind when moving fast
+        // If the hand gets stuck, free it
+        if (Vector3.Distance(Follower.position, TargetPosition) > Configuration.HandStuckDistanceThreshold.Value)
+            Follower.position = TargetPosition;
+
+        float playerSpeed = GTPlayer.Instance.RigidbodyVelocity.magnitude;
         Vector3 offset = TargetPosition - Follower.position;
-        Vector3 force = offset * Configuration.FollowForceMultiplier.Value - FollowerRigidbody.velocity * Configuration.DampingForceMultiplier.Value;
+        Vector3 force = offset * (Configuration.FollowForceMultiplier.Value + playerSpeed * 10) - FollowerRigidbody.velocity * Configuration.DampingForceMultiplier.Value;
 
         FollowerRigidbody.AddForce(force, ForceMode.Acceleration);
 
@@ -133,11 +134,13 @@ public class HandController : MonoBehaviour
 
     private void AnchorHandAt(Vector3 position)
     {
+        if (!anchored) {
+            SetCollidersActive(false); // Stops hand from randomly rotating when anchre
+        }
         anchored = true;
-        SetCollidersActive(false); // Stops hand from randomly rotating when anchre
         Follower.position = position;
         FollowerRigidbody.velocity = Vector3.zero;
-        FollowerRigidbody.angularVelocity = Vector3.zero;
+        // FollowerRigidbody.angularVelocity = Vector3.zero;
     }
 
     public void ApplyRotationaryForce() {
@@ -174,10 +177,10 @@ public class HandController : MonoBehaviour
     private bool TryRaycastToTerrain(out Vector3 hitPoint)
     {
         var direction = -Follower.up; // from palm
-        float distance = .5f; // Todo: make configurable
+        const float distance = .5f; // Todo: make configurable
 
         Ray ray = new Ray(Follower.position, direction);
-        if (Physics.Raycast(ray, out RaycastHit hit, distance, layerMask))
+        if (Physics.SphereCast(ray, Configuration.HandSpherecastRadius.Value, out RaycastHit hit, distance, layerMask))
         {
             hitPoint = hit.point;
 #if DEBUG
