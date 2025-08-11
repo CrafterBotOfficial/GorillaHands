@@ -10,6 +10,8 @@ public class HandController : MonoBehaviour
     public bool IsLeft;
     private XRNode inputDevice;
 
+    public HandState HandState;
+
     public Transform PlayerHand;
     public Transform Follower; // The gaint hand that follows the target pos
     public Rigidbody FollowerRigidbody;
@@ -17,6 +19,8 @@ public class HandController : MonoBehaviour
 
     private GameObject handGeometry; // The skin mesh object
     private AnimationManager animationManager;
+
+    private HandStuckManager handStuckManager;
 
     private bool anchored;
     private Vector3 anchorPoint;
@@ -51,14 +55,14 @@ public class HandController : MonoBehaviour
         VRRig.LocalRig.OnColorChanged += (args) => UpdateColor();
         UpdateColor();
 
-        // -- Animation setup
-        animationManager = this.AddComponent<AnimationManager>();
-        animationManager.Controller = this;
-        animationManager.InputDevice = inputDevice;
-
         FollowerRigidbody = Follower.AddComponent<Rigidbody>();
         FollowerRigidbody.freezeRotation = true;
         FollowerRigidbody.useGravity = false;
+
+        // -- Animation setup
+        animationManager = new AnimationManager(this, inputDevice, Follower.GetComponent<Animator>());
+
+        handStuckManager = new HandStuckManager(this, FollowerRigidbody);
 
         if (Configuration.HandCollisions.Value)
             SetupColliders();
@@ -79,7 +83,7 @@ public class HandController : MonoBehaviour
 #endif
 
         // Hand open/close transitions/animations are handled by IsAnimating
-        if (animationManager.IsAnimating() || animationManager.HandHidden()) // Todo: I dislike having the handhidden check within the transition manager. Hand state should be manged here
+        if (animationManager.IsAnimating() || HandHidden())
             return;
 
         // todo: test in breach map to ensure this isnt annoying as hell, since it will kick you out of climb state if
@@ -107,14 +111,9 @@ public class HandController : MonoBehaviour
         if (anchored)
         {
             anchored = false;
-            SetCollidersActive(true);
+            FreezeRigidbody(true);
             GTPlayer.Instance.playerRigidBody.velocity *= Configuration.VelocityMultiplierOnRelease.Value; // Release multiplier
-        }
-
-        // If the hand gets stuck, free it
-        // Todo: Investigate having a mixed system where the hand's collider cant temp turn off to reach the target, but then if it gets to fare it tps
-        if (Vector3.Distance(Follower.position, TargetPosition) > Configuration.HandStuckDistanceThreshold.Value)
-            Follower.position = TargetPosition;
+        } else handStuckManager.CheckHandFreedom();
 
         float playerSpeed = GTPlayer.Instance.RigidbodyVelocity.magnitude;
         Vector3 offset = TargetPosition - Follower.position;
@@ -129,7 +128,7 @@ public class HandController : MonoBehaviour
     {
         if (!anchored)
         {
-            SetCollidersActive(false); // Stops hand from randomly rotating when anchre
+            FreezeRigidbody(false); // Stops hand from randomly rotating when anchre
         }
         anchored = true;
         Follower.position = position;
@@ -144,9 +143,6 @@ public class HandController : MonoBehaviour
         Follower.rotation = Quaternion.Lerp(Follower.rotation, desiredRotation.normalized, Configuration.RotationLerpAmount.Value);
     }
 
-    // Todo: Chin make meshcollider in prefab so we can skip all dis
-    // (done?) Todo: fix rotation getting all outda wak when collider touches something or anchored
-    // Todo: Test release build to ensure colliders FEEL correct
     private void SetupColliders()
     {
 #if DEBUG
@@ -160,8 +156,7 @@ public class HandController : MonoBehaviour
         FollowerCollider.includeLayers = TerrainLayers;
     }
 
-    // todo: rename
-    private void SetCollidersActive(bool value)
+    private void FreezeRigidbody(bool value)
     {
         if (FollowerCollider is null) return;
         // Handle rigidbody prepping for anchroing
@@ -203,6 +198,11 @@ public class HandController : MonoBehaviour
         GTPlayer.Instance.playerRigidBody.velocity = targetVelocity - GTPlayer.Instance.playerRigidBody.position;
     }
 
+    private bool HandHidden()
+    {
+        return HandState == HandState.Closed || HandState == HandState.Closing;
+    }
+
     private Vector3 CalculateTargetPosition()
     {
         Vector3 playerPosition = GTPlayer.Instance.bodyCollider.transform.position - new Vector3(0, 0.05f, 0);
@@ -242,4 +242,12 @@ public class HandController : MonoBehaviour
         return sphere;
     }
 #endif
+}
+
+public enum HandState
+{
+    Opening,
+    Open,
+    Closing,
+    Closed
 }
