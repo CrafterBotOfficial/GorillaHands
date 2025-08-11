@@ -4,12 +4,11 @@ using UnityEngine.XR;
 
 namespace GorillaHands;
 
-public class AnimationManager : MonoBehaviour
+public class AnimationManager
 {
     public HandController Controller;
     public XRNode InputDevice;
 
-    private HandState handState;
     private float transitionT;
     private Vector3 targetPosition;
 
@@ -19,37 +18,24 @@ public class AnimationManager : MonoBehaviour
     private LineRenderer lineRenderer_PlayerHandToTargetPos_Debug;
 #endif
 
-    //     public AnimationManager(HandController controller, XRNode inputDevice)
-    //     {
-    //         Controller = controller;
-    //         InputDevice = inputDevice;
-    //         handState = HandState.Closed;
-    // #if DEBUG
-    //         lineRenderer_PlayerHandToTargetPos_Debug = Controller.CreateDebugLine(.1f);
-    // #endif
-    //     }
-    //
-    private void Start()
+    public AnimationManager(HandController controller, XRNode inputDevice, Animator animator)
     {
-        animator = Controller.Follower.GetComponent<Animator>();
+        Controller = controller;
+        InputDevice = inputDevice;
+        this.animator = animator;
         Controller.Follower.transform.localScale = Vector3.one * 8;
 #if DEBUG
         lineRenderer_PlayerHandToTargetPos_Debug = Controller.CreateDebugLine(.1f);
 #endif
     }
 
-    public bool HandHidden() => handState == HandState.Closed;
-
-    public void Update()
-    {
-        float gripValue = ControllerInputPoller.GripFloat(InputDevice);
-        animator.SetFloat("Grip", gripValue);
-    }
-
     public bool IsAnimating()
     {
         bool buttonPressed = ControllerInputPoller.PrimaryButtonPress(InputDevice);
-        bool inTransition = handState == HandState.Opening || handState == HandState.Closing;
+        bool inTransition = Controller.HandState == HandState.Opening || Controller.HandState == HandState.Closing;
+
+        float gripValue = ControllerInputPoller.GripFloat(InputDevice);
+        animator.SetFloat("Grip", gripValue);
 
         if (inTransition)
         {
@@ -59,9 +45,9 @@ public class AnimationManager : MonoBehaviour
 
         if (buttonPressed)
         {
-            handState = handState == HandState.Open ? HandState.Closing : HandState.Opening;
-            Main.Log($"Setting hand state to {handState}");
-            if (handState == HandState.Opening)
+            Controller.HandState = Controller.HandState == HandState.Open ? HandState.Closing : HandState.Opening;
+            Main.Log($"Setting hand state to {Controller.HandState}");
+            if (Controller.HandState == HandState.Opening)
             {
                 transitionT = 1; // I'd prefer just use an animator as this feels tacky
                 targetPosition = GetHandSpawnPoint();
@@ -78,7 +64,7 @@ public class AnimationManager : MonoBehaviour
     private void HandleHandTransition()
     {
         // hand scale
-        float scaleTarget = handState == HandState.Opening ? 0f : 1f;
+        float scaleTarget = Controller.HandState == HandState.Opening ? 0f : 1f;
         transitionT = Mathf.MoveTowards(transitionT, scaleTarget, Time.fixedDeltaTime * (Configuration.TransitionSpeed.Value * 0.6f)); // Chin, what is 0.6 from?
         float scale = Mathf.Lerp(8f, 0f, transitionT);
         Controller.Follower.localScale = Vector3.one * scale;
@@ -94,16 +80,16 @@ public class AnimationManager : MonoBehaviour
 
         if (AnimationComplete())
         {
-            Main.Log("Completed animation, or sorry transition");
-            handState = handState == HandState.Opening ? HandState.Open : HandState.Closed;
+            Main.Log("Completed animation");
+            Controller.HandState = Controller.HandState == HandState.Opening ? HandState.Open : HandState.Closed;
         }
     }
 
     private bool AnimationComplete()
     {
-        if (handState == HandState.Opening)
+        if (Controller.HandState == HandState.Opening)
             return transitionT <= 0;
-        if (handState == HandState.Closing)
+        if (Controller.HandState == HandState.Closing)
             return transitionT >= 1;
         Main.Log("What is even going on anymore?");
         return false;
@@ -128,11 +114,4 @@ public class AnimationManager : MonoBehaviour
         return spawn;
     }
 
-    private enum HandState
-    {
-        Opening,
-        Open,
-        Closing,
-        Closed
-    }
 }

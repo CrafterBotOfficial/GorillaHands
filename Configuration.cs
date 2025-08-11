@@ -13,8 +13,8 @@ public static class Configuration
 
     public static ConfigEntry<bool> HandCollisions;
     public static ConfigEntry<float> HandSpherecastRadius;
-
     public static ConfigEntry<float> HandStuckDistanceThreshold;
+
     public static ConfigEntry<float> RotationLerpAmount;
     public static ConfigEntry<float> TransitionSpeed;
 
@@ -28,10 +28,10 @@ public static class Configuration
         DampingForceMultiplier = config.Bind("Multipliers", "Damping Mult", 8f);
 
         HandCollisions = config.Bind("Collisions", "Hand collisions", true, "Can hand interact with other surfaces?");
-        HandSpherecastRadius = config.Bind("Collisions", "Spherecast Radius", .35f);
+        HandSpherecastRadius = config.Bind("Collisions", "Spherecast Radius", .55f, "Bigger number equals bigger snap.");
+        HandStuckDistanceThreshold = config.Bind("Collisions", "HandStuckDistanceThreshold", 8f, "How fare can the hand get before it will go through walls to return. (Avoids getting stuck in trees)");
 
-        HandStuckDistanceThreshold = config.Bind("Misc", "HandStuckDistanceThreshold", 15f, "How fare can the hand get before it teleports back.");
         RotationLerpAmount = config.Bind("Misc", "Rotation Lerp Amount", .1f, "Speed that the hands will rotate to match the real player hands.");
-        TransitionSpeed = config.Bind("Misc", "Transition Speed", 8f, "The speed the hands will appear/disappear when you press the button.");
+        TransitionSpeed = config.Bind("Misc", "Transition Speed", 12f, "The speed the hands will appear/disappear when you press the button.");
     }
 }
