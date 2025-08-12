@@ -72,6 +72,13 @@ public class HandController : MonoBehaviour
         Main.Log("Debug enabled, creating debug objects", BepInEx.Logging.LogLevel.Message);
         targetPosition_DebugSphere = CreateDebugSphere(Color.white, removeCollider: true);
         lineRenderer_HandTouchTerrain_Debug = CreateDebugLine(Configuration.HandSpherecastRadius.Value);
+
+        // var offsetDebug2 = CreateDebugSphere(Color.red, removeCollider: true).transform;
+        // offsetDebug2.SetParent(VRRig.LocalRig.transform);
+        // offsetDebug2.localPosition = new Vector3(.05f, -.2f, 0);
+        // var offsetDebug = CreateDebugSphere(Color.white, removeCollider: true).transform;
+        // offsetDebug.SetParent(GTPlayer.Instance.bodyCollider.transform);
+        // offsetDebug.localPosition = new Vector3(0, -0.05f, 0);
 #endif
     }
 
@@ -117,7 +124,7 @@ public class HandController : MonoBehaviour
 
         float playerSpeed = GTPlayer.Instance.RigidbodyVelocity.magnitude;
         Vector3 offset = TargetPosition - Follower.position;
-        Vector3 force = offset * (Configuration.FollowForceMultiplier.Value + playerSpeed * 50) - FollowerRigidbody.velocity * Configuration.DampingForceMultiplier.Value;
+        Vector3 force = offset * (Configuration.FollowForceMultiplier.Value + playerSpeed * 10) - FollowerRigidbody.velocity * Configuration.DampingForceMultiplier.Value;
 
         FollowerRigidbody.AddForce(force, ForceMode.Acceleration);
 
@@ -206,7 +213,7 @@ public class HandController : MonoBehaviour
 
     private Vector3 CalculateTargetPosition()
     {
-        Vector3 playerPosition = GTPlayer.Instance.bodyCollider.transform.position - new Vector3(0, 0.05f, 0);
+        Vector3 playerPosition = VRRig.LocalRig.transform.position + new Vector3(.05f, -.2f, 0);
         Vector3 playerToRealHandDirection = PlayerHand.position - playerPosition;
         return playerPosition + playerToRealHandDirection * (Configuration.ArmOffsetMultiplier.Value);
     }
