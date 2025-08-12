@@ -1,4 +1,5 @@
-﻿using GorillaLocomotion;
+﻿using System;
+using GorillaLocomotion;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.XR;
@@ -86,10 +87,8 @@ public class HandController : MonoBehaviour
         if (animationManager.IsAnimating() || HandHidden())
             return;
 
-        // todo: test in breach map to ensure this isnt annoying as hell, since it will kick you out of climb state if
-        // you grab something else
         bool grabbingAllowed = !GTPlayer.Instance.isClimbing; // todo: add any other dangerous interactions
-        if (ControllerInputPoller.GetGrab(inputDevice) && grabbingAllowed)
+        if (ControllerInputPoller.GetGrab(inputDevice) && grabbingAllowed) // todo: move to InputManager for consistancy
         {
             bool touchingTerrain = IsTouchingTerrain();
             if (!touchingTerrain && TryRaycastToTerrain(out Vector3 hitPoint))
@@ -113,11 +112,12 @@ public class HandController : MonoBehaviour
             anchored = false;
             FreezeRigidbody(true);
             GTPlayer.Instance.playerRigidBody.velocity *= Configuration.VelocityMultiplierOnRelease.Value; // Release multiplier
-        } else handStuckManager.CheckHandFreedom();
+        }
+        else handStuckManager.CheckHandFreedom();
 
         float playerSpeed = GTPlayer.Instance.RigidbodyVelocity.magnitude;
         Vector3 offset = TargetPosition - Follower.position;
-        Vector3 force = offset * (Configuration.FollowForceMultiplier.Value + playerSpeed * 10) - FollowerRigidbody.velocity * Configuration.DampingForceMultiplier.Value;
+        Vector3 force = offset * (Configuration.FollowForceMultiplier.Value + playerSpeed * 50) - FollowerRigidbody.velocity * Configuration.DampingForceMultiplier.Value;
 
         FollowerRigidbody.AddForce(force, ForceMode.Acceleration);
 
@@ -151,8 +151,8 @@ public class HandController : MonoBehaviour
         FollowerCollider = GameObject.CreatePrimitive(PrimitiveType.Cube).GetComponent<Collider>();
 #endif
         FollowerCollider.transform.SetParent(Follower, false);
-        FollowerCollider.transform.localScale = new Vector3(.12f, .12f / 2.5f, .12f); // 1/8=.125, hands are initially scaled by 8
-        FollowerCollider.transform.localPosition = IsLeft ? new Vector3(-.02f, .045f, 0) : new Vector3(.02f, .045f, 0);
+        FollowerCollider.transform.localPosition = IsLeft ? new Vector3(-.02f, .045f, 0) : new Vector3(.02f, .045f, 0); // y:.045
+        FollowerCollider.transform.localScale = new Vector3(.095f, .12f / 2.5f, .12f); // 1/8=.125, hands are initially scaled by 8
         FollowerCollider.includeLayers = TerrainLayers;
     }
 
@@ -186,8 +186,9 @@ public class HandController : MonoBehaviour
     {
         float radius = 0.15f;
         Collider[] hits = Physics.OverlapSphere(Follower.position, radius, TerrainLayers);
-        if (FollowerCollider is not null) return hits.Any(hit => hit.GetComponent<MeshRenderer>() && hit != FollowerCollider.gameObject);
-        else return hits.Any(hit => hit.GetComponent<MeshRenderer>() && hit);
+        return hits.Any(hit => hit && hit.GetComponent<MeshRenderer>());
+        // if (FollowerCollider != null) return hits.Any(hit => hit.GetComponent<MeshRenderer>() && hit != handGeometry);
+        // else return hits.Any(hit => hit && hit.GetComponent<MeshRenderer>());
     }
 
     private void ApplyClimbForceToPlayer()
@@ -218,7 +219,7 @@ public class HandController : MonoBehaviour
     }
 
     private void OnEnable() { Follower?.gameObject.SetActive(true); }
-    private void OnDisable() { Follower.gameObject.SetActive(false); }
+    private void OnDisable() { Follower?.gameObject.SetActive(false); }
 
 #if DEBUG
     public LineRenderer CreateDebugLine(float width)

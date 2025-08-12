@@ -1,4 +1,3 @@
-// State manager should be moved to the hand class
 using UnityEngine;
 using UnityEngine.XR;
 
@@ -7,7 +6,10 @@ namespace GorillaHands;
 public class AnimationManager
 {
     public HandController Controller;
-    public XRNode InputDevice;
+
+    private InputManager inputManager;
+    private const float debouncePeriodThreshold = .5f;
+    private float debounceTime;
 
     private float transitionT;
     private Vector3 targetPosition;
@@ -18,12 +20,13 @@ public class AnimationManager
     private LineRenderer lineRenderer_PlayerHandToTargetPos_Debug;
 #endif
 
-    public AnimationManager(HandController controller, XRNode inputDevice, Animator animator)
+    public AnimationManager(HandController controller, XRNode inputDevice, Animator gripAnimator)
     {
         Controller = controller;
-        InputDevice = inputDevice;
-        this.animator = animator;
+        inputManager = new InputManager(inputDevice);
+        animator = gripAnimator;
         Controller.Follower.transform.localScale = Vector3.one * 8;
+
 #if DEBUG
         lineRenderer_PlayerHandToTargetPos_Debug = Controller.CreateDebugLine(.1f);
 #endif
@@ -31,10 +34,9 @@ public class AnimationManager
 
     public bool IsAnimating()
     {
-        bool buttonPressed = ControllerInputPoller.PrimaryButtonPress(InputDevice);
         bool inTransition = Controller.HandState == HandState.Opening || Controller.HandState == HandState.Closing;
 
-        float gripValue = ControllerInputPoller.GripFloat(InputDevice);
+        float gripValue = ControllerInputPoller.GripFloat(inputManager.Node); // todo: move to inputmanager for consistancy (also make it not change the grip value if nothings happened)
         animator.SetFloat("Grip", gripValue);
 
         if (inTransition)
@@ -43,8 +45,11 @@ public class AnimationManager
             return true;
         }
 
-        if (buttonPressed)
+        bool buttonPressed = inputManager.GetButtonPress();
+        bool debounced = Time.time > debounceTime;
+        if (buttonPressed && debounced)
         {
+            debounceTime = Time.time + debouncePeriodThreshold;
             Controller.HandState = Controller.HandState == HandState.Open ? HandState.Closing : HandState.Opening;
             Main.Log($"Setting hand state to {Controller.HandState}");
             if (Controller.HandState == HandState.Opening)
