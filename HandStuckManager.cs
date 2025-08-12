@@ -7,9 +7,6 @@ public class HandStuckManager
     private HandController controller;
     private Rigidbody hand;
 
-    private bool isStuck;
-    private bool reachedTarget;
-
     public HandStuckManager(HandController handController, Rigidbody handRb)
     {
         controller = handController;
@@ -18,36 +15,27 @@ public class HandStuckManager
 
     public void CheckHandFreedom()  // https://youtu.be/cCHf8FxqzJc?t=106
     {
+        var collider = controller.FollowerCollider;
+        if (collider == null) return;
+
         Vector3 targetPosition = controller.TargetPosition;
         float distance = Vector3.Distance(hand.position, targetPosition);
 
-        // This is just testing code, dont panic
-        if (isStuck)
+        if (collider.gameObject.activeSelf)
         {
-            if (reachedTarget)
+            if (distance > Configuration.HandStuckDistanceThreshold.Value)
             {
-                SetCollidersActive(true);
-                isStuck = false;
-                reachedTarget = false;
-                return;
+                SetCollidersActive(false);
             }
-            else if (distance <= 1)
-            {
-                reachedTarget = true;
-            }
-            return;
         }
-
-        if (distance > Configuration.HandStuckDistanceThreshold.Value)
+        else if (distance <= 1.5f)
         {
-            isStuck = true;
-            SetCollidersActive(false);
+            SetCollidersActive(true);
         }
     }
 
     private void SetCollidersActive(bool value)
     {
-        if (controller.FollowerCollider is null) return;
         controller.FollowerCollider.gameObject.SetActive(value);
     }
 }
