@@ -33,7 +33,7 @@ public class Main : BaseUnityPlugin
             leftHand = rightHand.gameObject.AddComponent<HandController>();
             leftHand.IsLeft = true;
 
-            // OnLeave();
+            OnLeave();
         };
     }
 

@@ -92,11 +92,13 @@ public class AnimationManager
 
     private bool AnimationComplete()
     {
-        if (Controller.HandState == HandState.Opening)
-            return transitionT <= 0;
-        if (Controller.HandState == HandState.Closing)
-            return transitionT >= 1;
-        Main.Log("What is even going on anymore?");
+        switch (Controller.HandState)
+        {
+            case HandState.Opening:
+                return transitionT <= 0;
+            case HandState.Closing:
+                return transitionT >= 1;
+        }
         return false;
     }
 
@@ -113,10 +115,9 @@ public class AnimationManager
 #if DEBUG
         lineRenderer_PlayerHandToTargetPos_Debug.SetPositions([Controller.PlayerHand.position, hit.point]);
 #endif
-        // moves hand closer to avoid clipping into terrain
+        // moves hand closer to the player to avoid clipping into terrain
         Vector3 unit = direction.normalized;
         Vector3 spawn = hit.point - unit;
         return spawn;
     }
-
 }

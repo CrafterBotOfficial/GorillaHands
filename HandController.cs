@@ -100,13 +100,12 @@ public class HandController : MonoBehaviour
             bool touchingTerrain = IsTouchingTerrain();
             if (!touchingTerrain && TryRaycastToTerrain(out Vector3 hitPoint))
             {
-                if (!anchored) // Incase this is the first frame which the player grips, after this it will be ture
-                    anchorPoint = hitPoint;
+                if (!anchored) anchorPoint = hitPoint;
                 AnchorHandAt(anchorPoint);
                 ApplyClimbForceToPlayer();
                 return;
             }
-            else if (touchingTerrain) // mainly for when colliders are disabled, so we can prob get rid of this
+            else if (touchingTerrain) // mainly for when colliders are disabled, so we can prob get rid of this since nobody will use the mod with no colliders
             {
                 AnchorHandAt(Follower.position);
                 ApplyClimbForceToPlayer();
@@ -135,7 +134,7 @@ public class HandController : MonoBehaviour
     {
         if (!anchored)
         {
-            FreezeRigidbody(false); // Stops hand from randomly rotating when anchre
+            FreezeRigidbody(false);
         }
         anchored = true;
         Follower.position = position;
@@ -165,7 +164,7 @@ public class HandController : MonoBehaviour
 
     private void FreezeRigidbody(bool value)
     {
-        if (FollowerCollider is null) return;
+        if (FollowerCollider == null) return;
         // Handle rigidbody prepping for anchroing
         FollowerRigidbody.isKinematic = !value;
     }
@@ -194,8 +193,6 @@ public class HandController : MonoBehaviour
         float radius = 0.15f;
         Collider[] hits = Physics.OverlapSphere(Follower.position, radius, TerrainLayers);
         return hits.Any(hit => hit && hit.GetComponent<MeshRenderer>());
-        // if (FollowerCollider != null) return hits.Any(hit => hit.GetComponent<MeshRenderer>() && hit != handGeometry);
-        // else return hits.Any(hit => hit && hit.GetComponent<MeshRenderer>());
     }
 
     private void ApplyClimbForceToPlayer()

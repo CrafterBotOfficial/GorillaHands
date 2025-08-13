@@ -25,7 +25,7 @@ public static class Configuration
     {
         Config = config;
 
-        ArmOffsetMultiplier = config.Bind("Multipliers", "Arm Offset", 12f); // todo: investigate this default value, Im not totally convinced its best
+        ArmOffsetMultiplier = config.Bind("Multipliers", "Arm Offset", 12f);
         VelocityMultiplierOnRelease = config.Bind("Multipliers", "Booster", 2f, "The velocity multiplier for when you stop climbing.");
         FollowForceMultiplier = config.Bind("Multipliers", "Follow Force", 150f, "The force the hand uses to get to the target pos"); // 50
         DampingForceMultiplier = config.Bind("Multipliers", "Damping Mult", 16f); // 8
@@ -41,10 +41,9 @@ public static class Configuration
     }
 }
 
-// Should make this more robust to future updates
 public enum ControllerButton
 {
     Primary,
     Secondary,
-    JoystickDown
+    // JoystickDown
 }
