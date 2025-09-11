@@ -78,9 +78,8 @@ public class AnimationManager
         // hand movement
         Vector3 phaseTarget = Vector3.Lerp(targetPosition, Controller.PlayerHand.position, transitionT);
         Controller.Follower.position = phaseTarget;
-        Controller.FollowerRigidbody.velocity = Vector3.zero;
+        Controller.FollowerRigidbody.linearVelocity = Vector3.zero;
 
-        // hand rot
         Controller.ApplyRotationaryForce();
 
         if (AnimationComplete())

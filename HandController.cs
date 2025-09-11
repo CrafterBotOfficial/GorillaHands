@@ -38,8 +38,8 @@ public class HandController : MonoBehaviour
     public void Start()
     {
         PlayerHand = IsLeft
-            ? VRRigCache.Instance.localRig.transform.Find("RigAnchor/rig/body/shoulder.L/upper_arm.L/forearm.L/hand.L")
-            : VRRigCache.Instance.localRig.transform.Find("RigAnchor/rig/body/shoulder.R/upper_arm.R/forearm.R/hand.R");
+            ? VRRigCache.Instance.localRig.transform.Find("GorillaPlayerNetworkedRigAnchor/rig/body/shoulder.L/upper_arm.L/forearm.L/hand.L")
+            : VRRigCache.Instance.localRig.transform.Find("GorillaPlayerNetworkedRigAnchor/rig/body/shoulder.R/upper_arm.R/forearm.R/hand.R");
 
         inputDevice = IsLeft
             ? UnityEngine.XR.XRNode.LeftHand
@@ -53,7 +53,7 @@ public class HandController : MonoBehaviour
             ? Follower.Find("hands:hands_geom/hands:Lhand").gameObject
             : Follower.Find("hands:hands_geom/hands:Rhand").gameObject;
 
-        VRRig.LocalRig.OnColorChanged += (args) => UpdateColor();
+        VRRig.LocalRig.OnColorChanged += _ => UpdateColor();
         UpdateColor();
 
         FollowerRigidbody = Follower.AddComponent<Rigidbody>();
@@ -117,13 +117,13 @@ public class HandController : MonoBehaviour
         {
             anchored = false;
             FreezeRigidbody(true);
-            GTPlayer.Instance.playerRigidBody.velocity *= Configuration.VelocityMultiplierOnRelease.Value; // Release multiplier
+            GTPlayer.Instance.playerRigidBody.linearVelocity *= Configuration.VelocityMultiplierOnRelease.Value; // Release multiplier
         }
         else handStuckManager.CheckHandFreedom();
 
         float playerSpeed = GTPlayer.Instance.RigidbodyVelocity.magnitude;
         Vector3 offset = TargetPosition - Follower.position;
-        Vector3 force = offset * (Configuration.FollowForceMultiplier.Value + playerSpeed * 10) - FollowerRigidbody.velocity * Configuration.DampingForceMultiplier.Value;
+        Vector3 force = offset * (Configuration.FollowForceMultiplier.Value + playerSpeed * 10) - FollowerRigidbody.linearVelocity * Configuration.DampingForceMultiplier.Value;
 
         FollowerRigidbody.AddForce(force, ForceMode.Acceleration);
 
@@ -138,7 +138,7 @@ public class HandController : MonoBehaviour
         }
         anchored = true;
         Follower.position = position;
-        FollowerRigidbody.velocity = Vector3.zero;
+        FollowerRigidbody.linearVelocity = Vector3.zero;
         // FollowerRigidbody.angularVelocity = Vector3.zero;
     }
 
@@ -200,7 +200,7 @@ public class HandController : MonoBehaviour
         Vector3 basePoint = GTPlayer.Instance.bodyCollider.transform.position;
         Vector3 direction = basePoint - PlayerHand.position;
         Vector3 targetVelocity = direction * Configuration.ArmOffsetMultiplier.Value + Follower.position;
-        GTPlayer.Instance.playerRigidBody.velocity = targetVelocity - GTPlayer.Instance.playerRigidBody.position;
+        GTPlayer.Instance.playerRigidBody.linearVelocity = targetVelocity - GTPlayer.Instance.playerRigidBody.position;
     }
 
     private bool HandHidden()
