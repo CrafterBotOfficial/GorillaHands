@@ -5,7 +5,7 @@ using Utilla.Attributes;
 
 namespace GorillaHands;
 
-[BepInPlugin("com.crafterbot.gorillahands", "GorillaHands", "1.0.0")]
+[BepInPlugin("com.crafterbot.gorillahands", "GorillaHands", "1.0.1")]
 [BepInDependency("org.legoandmars.gorillatag.utilla", "1.6.0")]
 [ModdedGamemode]
 public class Main : BaseUnityPlugin
@@ -21,7 +21,7 @@ public class Main : BaseUnityPlugin
     {
         instance = this;
         Configuration.Initialize(Config);
-        Utilla.Events.GameInitialized += async (sender, args) =>
+        Utilla.Events.GameInitialized += async (_, _) =>
         {
             Log("Creating hands");
 
