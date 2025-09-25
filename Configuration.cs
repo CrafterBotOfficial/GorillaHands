@@ -45,5 +45,5 @@ public enum ControllerButton
 {
     Primary,
     Secondary,
-    // JoystickDown
+    JoystickDown,
 }
