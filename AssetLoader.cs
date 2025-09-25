@@ -18,7 +18,7 @@ public class AssetLoader : IDisposable
     public async Task<UnityEngine.Object> LoadAsset(string name)
     {
         var request = bundle.LoadAssetAsync(name);
-        await Task.Run(() => request.completed += _ => { });
+        await request;
         return request.asset;
     }
 

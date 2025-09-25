@@ -16,7 +16,7 @@ public class HandController : MonoBehaviour
     public Transform PlayerHand;
     public Transform Follower; // The gaint hand that follows the target pos
     public Rigidbody FollowerRigidbody;
-    public Collider? FollowerCollider;
+    public Collider FollowerCollider;
 
     private GameObject handGeometry; // The skin mesh object
     private AnimationManager animationManager;
@@ -67,6 +67,8 @@ public class HandController : MonoBehaviour
 
         if (Configuration.HandCollisions.Value)
             SetupColliders();
+
+        HandState = HandState.Closed;
 
 #if DEBUG
         Main.Log("Debug enabled, creating debug objects", BepInEx.Logging.LogLevel.Message);
@@ -138,7 +140,7 @@ public class HandController : MonoBehaviour
         }
         anchored = true;
         Follower.position = position;
-        FollowerRigidbody.linearVelocity = Vector3.zero;
+        // FollowerRigidbody.linearVelocity = Vector3.zero;
         // FollowerRigidbody.angularVelocity = Vector3.zero;
     }
 
