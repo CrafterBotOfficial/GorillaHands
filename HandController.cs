@@ -29,8 +29,8 @@ public class HandController : MonoBehaviour
 
     public Vector3 TargetPosition;
 
-#if DEBUG
     private const string DEBUG_OBJECT_SHADER = "GorillaTag/UberShader";
+#if DEBUG
     private Transform targetPosition_DebugSphere;
     private LineRenderer lineRenderer_HandTouchTerrain_Debug;
 #endif 
@@ -157,7 +157,9 @@ public class HandController : MonoBehaviour
         FollowerCollider = CreateDebugSphere(Color.white, true, false, true).GetComponent<Collider>();//GameObject.CreatePrimitive(PrimitiveType.Cube);
 #else
         FollowerCollider = GameObject.CreatePrimitive(PrimitiveType.Cube).GetComponent<Collider>();
+        Destroy(FollowerCollider.GetComponent<Renderer>());
 #endif
+
         FollowerCollider.transform.SetParent(Follower, false);
         FollowerCollider.transform.localPosition = IsLeft ? new Vector3(-.02f, .045f, 0) : new Vector3(.02f, .045f, 0); // y:.045
         FollowerCollider.transform.localScale = new Vector3(.095f, .12f / 2.5f, .12f); // 1/8=.125, hands are initially scaled by 8
