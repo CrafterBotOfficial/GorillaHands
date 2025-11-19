@@ -1,0 +1,35 @@
+name: Auto Build
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 */2 * *'
+  push:
+    branches: 
+      - master
+      - dev
+
+jobs:
+  auto-build:
+    name: Auto Build
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Setup .NET 9
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Run the build
+      env:
+        CI: TRUE 
+      run: |
+          dotnet nuget add source https://git.crafterbot.com/api/packages/GorillaTagModding/nuget/index.json
+          dotnet restore
+          dotnet build -c Release
+          
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: mod
+        path: bin/Release/netstandard2.1/GorillaHands.dll 
