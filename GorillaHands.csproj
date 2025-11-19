@@ -6,7 +6,7 @@
     </PropertyGroup>
 
     <!-- Output -->
-    <Target AfterTargets="Build" Name="Output">
+    <Target Condition="'$(CI)'!='TRUE'" AfterTargets="Build" Name="Output">
         <Copy SourceFiles="$(TargetPath);bin/Debug/$(TargetFramework)/GorillaHands.pdb" DestinationFiles="$(GORILLATAG_PATH)/BepInEx/plugins/GorillaHands/GorillaHands.dll;$(GORILLATAG_PATH)/BepInEx/plugins/GorillaHands/GorillaHands.pdb" />
     </Target>
 
@@ -15,7 +15,13 @@
     </ItemGroup>
 
     <!-- Dependencies -->
-    <ItemGroup>
+
+    <ItemGroup Condition="'$(CI)'=='TRUE'">
+        <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.2" PrivateAssets="all" />
+        <PackageReference Publicize="true" Include="gorillatag" Version="1.0.*"/>
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(CI)'!='TRUE'">
         <PackageReference Include="BepInEx.AssemblyPublicizer.MSBuild" Version="0.4.2" PrivateAssets="all" />
 
         <Reference Include="0Harmony">
