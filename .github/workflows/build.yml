@@ -1,24 +1,19 @@
 name: Auto Build
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 0 */2 * *'
   push:
-    branches: 
-      - master
-      - dev
 
 jobs:
   auto-build:
     name: Auto Build
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v5
 
-    - name: Setup .NET 9
+    - name: Setup .NET 10
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '9.0.x'
+        dotnet-version: '10.0.x'
 
     - name: Run the build
       env:

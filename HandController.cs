@@ -1,5 +1,4 @@
-﻿using System;
-using GorillaLocomotion;
+﻿using GorillaLocomotion;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.XR;
@@ -29,17 +28,18 @@ public class HandController : MonoBehaviour
 
     public Vector3 TargetPosition;
 
-    private const string DEBUG_OBJECT_SHADER = "GorillaTag/UberShader";
 #if DEBUG
+    private const string DEBUG_OBJECT_SHADER = "GorillaTag/UberShader";
     private Transform targetPosition_DebugSphere;
     private LineRenderer lineRenderer_HandTouchTerrain_Debug;
+    private LineRenderer lineRenderer_HandTryRay_Debug;
 #endif 
 
     public void Start()
     {
         PlayerHand = IsLeft
-            ? VRRigCache.Instance.localRig.transform.Find("GorillaPlayerNetworkedRigAnchor/rig/body/shoulder.L/upper_arm.L/forearm.L/hand.L")
-            : VRRigCache.Instance.localRig.transform.Find("GorillaPlayerNetworkedRigAnchor/rig/body/shoulder.R/upper_arm.R/forearm.R/hand.R");
+            ? VRRig.LocalRig.transform.Find("rig/hand.L")
+            : VRRig.LocalRig.transform.Find("rig/hand.R");
 
         inputDevice = IsLeft
             ? UnityEngine.XR.XRNode.LeftHand
@@ -52,9 +52,6 @@ public class HandController : MonoBehaviour
         handGeometry = IsLeft
             ? Follower.Find("hands:hands_geom/hands:Lhand").gameObject
             : Follower.Find("hands:hands_geom/hands:Rhand").gameObject;
-
-        VRRig.LocalRig.OnColorChanged += _ => UpdateColor();
-        UpdateColor();
 
         FollowerRigidbody = Follower.AddComponent<Rigidbody>();
         FollowerRigidbody.freezeRotation = true;
@@ -74,6 +71,7 @@ public class HandController : MonoBehaviour
         Main.Log("Debug enabled, creating debug objects", BepInEx.Logging.LogLevel.Message);
         targetPosition_DebugSphere = CreateDebugSphere(Color.white, removeCollider: true);
         lineRenderer_HandTouchTerrain_Debug = CreateDebugLine(Configuration.HandSpherecastRadius.Value);
+        lineRenderer_HandTryRay_Debug = CreateDebugLine(0.15f);
 
         // var offsetDebug2 = CreateDebugSphere(Color.red, removeCollider: true).transform;
         // offsetDebug2.SetParent(VRRig.LocalRig.transform);
@@ -100,7 +98,7 @@ public class HandController : MonoBehaviour
         if (ControllerInputPoller.GetGrab(inputDevice) && grabbingAllowed) // todo: move to InputManager for consistancy
         {
             bool touchingTerrain = IsTouchingTerrain();
-            if (!touchingTerrain && TryRaycastToTerrain(out Vector3 hitPoint))
+            if (!touchingTerrain && (TryRaycastToTerrain(out Vector3 hitPoint) || anchored)) // if already anchored no need to recheck raycast
             {
                 if (!anchored) anchorPoint = hitPoint;
                 AnchorHandAt(anchorPoint);
@@ -117,9 +115,10 @@ public class HandController : MonoBehaviour
 
         if (anchored)
         {
+            Main.Log("Unanchoring", BepInEx.Logging.LogLevel.Debug);
             anchored = false;
-            FreezeRigidbody(true);
-            GTPlayer.Instance.playerRigidBody.linearVelocity *= Configuration.VelocityMultiplierOnRelease.Value; // Release multiplier
+            FreezeRigidbody(false);
+            GTPlayer.Instance.playerRigidBody.linearVelocity *= Configuration.VelocityMultiplierOnRelease.Value; // Throw player mult
         }
         else handStuckManager.CheckHandFreedom();
 
@@ -136,10 +135,11 @@ public class HandController : MonoBehaviour
     {
         if (!anchored)
         {
-            FreezeRigidbody(false);
+            Main.Log("Anchor oneshot called", BepInEx.Logging.LogLevel.Debug);
+            anchored = true;
+            Follower.position = position;
+            FreezeRigidbody(true);
         }
-        anchored = true;
-        Follower.position = position;
         // FollowerRigidbody.linearVelocity = Vector3.zero;
         // FollowerRigidbody.angularVelocity = Vector3.zero;
     }
@@ -166,20 +166,27 @@ public class HandController : MonoBehaviour
         FollowerCollider.includeLayers = TerrainLayers;
     }
 
-    private void FreezeRigidbody(bool value)
+    private void FreezeRigidbody(bool canMove)
     {
         if (FollowerCollider == null) return;
         // Handle rigidbody prepping for anchroing
-        FollowerRigidbody.isKinematic = !value;
+        FollowerRigidbody.isKinematic = canMove;
     }
 
     private bool TryRaycastToTerrain(out Vector3 hitPoint)
     {
         var direction = -Follower.up; // from palm
         const float distance = .5f; // Todo: make configurable
+        const float backupDistance = .1f;
 
-        Ray ray = new Ray(Follower.position, direction);
-        if (Physics.SphereCast(ray, Configuration.HandSpherecastRadius.Value, out RaycastHit hit, distance, TerrainLayers))
+        var ray = new Ray(Follower.position - direction * backupDistance, direction);
+
+#if DEBUG
+        lineRenderer_HandTryRay_Debug.SetPositions([ray.origin, ray.origin + direction * distance]);
+#endif
+
+        if (Physics.SphereCast(ray, Configuration.HandSpherecastRadius.Value, out RaycastHit hit, distance, TerrainLayers)
+                || Physics.Raycast(new(ray.origin - ray.direction * 0.25f, direction), out hit, distance, TerrainLayers)) // fixes hand not grabbing if to close during input, bit jank but whatever
         {
             hitPoint = hit.point;
 #if DEBUG
@@ -216,13 +223,13 @@ public class HandController : MonoBehaviour
     {
         Vector3 playerPosition = VRRig.LocalRig.transform.position + new Vector3(.05f, -.2f, 0);
         Vector3 playerToRealHandDirection = PlayerHand.position - playerPosition;
-        return playerPosition + playerToRealHandDirection * (Configuration.ArmOffsetMultiplier.Value);
+        return playerPosition + playerToRealHandDirection * Configuration.ArmOffsetMultiplier.Value;
     }
 
     // Chin, change this so it uses the player material. Im not sure if the asset will allow for it so its up to you
     public void UpdateColor()
     {
-        if (Follower is Transform && handGeometry.GetComponent<SkinnedMeshRenderer>() is SkinnedMeshRenderer renderer)
+        if (Follower is not null && handGeometry.GetComponent<SkinnedMeshRenderer>() is SkinnedMeshRenderer renderer)
             renderer.material.color = GorillaTagger.Instance.offlineVRRig.playerColor;
     }
 
