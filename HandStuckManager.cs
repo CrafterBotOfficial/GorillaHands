@@ -2,17 +2,8 @@ using UnityEngine;
 
 namespace GorillaHands;
 
-public class HandStuckManager
+public class HandStuckManager(HandController controller, Rigidbody hand)
 {
-    private HandController controller;
-    private Rigidbody hand;
-
-    public HandStuckManager(HandController handController, Rigidbody handRb)
-    {
-        controller = handController;
-        hand = handRb;
-    }
-
     public void CheckHandFreedom()  // https://youtu.be/cCHf8FxqzJc?t=106
     {
         var collider = controller.FollowerCollider;

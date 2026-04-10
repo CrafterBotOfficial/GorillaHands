@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.XR;
 
@@ -70,7 +71,7 @@ public class AnimationManager
     {
         // hand scale
         float scaleTarget = Controller.HandState == HandState.Opening ? 0f : 1f;
-        transitionT = Mathf.MoveTowards(transitionT, scaleTarget, Time.fixedDeltaTime * (Configuration.TransitionSpeed.Value * 0.6f)); // Chin, what is 0.6 from?
+        transitionT = Mathf.MoveTowards(transitionT, scaleTarget, Time.fixedDeltaTime * (Configuration.TransitionSpeed.Value * 0.6f));
         float scale = Mathf.Lerp(8f, 0f, transitionT);
         Controller.Follower.localScale = Vector3.one * scale;
 
@@ -89,24 +90,20 @@ public class AnimationManager
         }
     }
 
-    private bool AnimationComplete()
-    {
-        switch (Controller.HandState)
+    private bool AnimationComplete() =>
+        Controller.HandState switch
         {
-            case HandState.Opening:
-                return transitionT <= 0;
-            case HandState.Closing:
-                return transitionT >= 1;
-        }
-        return false;
-    }
+            HandState.Opening => transitionT <= 0,
+            HandState.Closing => transitionT >= 1,
+            _ => throw new InvalidOperationException("Bad hand state"),
+        };
 
     // Todo: When hands spawn to close to player (like if the player ius pointing straight down) the player will be flung as the hands will clip into him
     private Vector3 GetHandSpawnPoint()
     {
         Vector3 direction = Controller.TargetPosition - Controller.PlayerHand.position;
         float distance = Vector3.Distance(Controller.PlayerHand.position, Controller.TargetPosition);
-        Ray ray = new Ray(Controller.PlayerHand.position, direction);
+        var ray = new Ray(Controller.PlayerHand.position, direction);
 
         if (!Physics.Raycast(Controller.PlayerHand.position, direction, out RaycastHit hit, distance, Controller.TerrainLayers))
             return Controller.TargetPosition;

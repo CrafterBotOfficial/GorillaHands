@@ -1,26 +1,28 @@
 ﻿using BepInEx;
 using BepInEx.Logging;
+using HarmonyLib;
 using UnityEngine;
 using Utilla.Attributes;
 
 namespace GorillaHands;
 
-[BepInPlugin("com.crafterbot.gorillahands", "GorillaHands", "1.0.2")]
+[BepInPlugin("com.crafterbot.gorillahands", "GorillaHands", "1.0.3")]
 [BepInDependency("org.legoandmars.gorillatag.utilla", "1.6.0")]
 [ModdedGamemode]
 public class Main : BaseUnityPlugin
 {
-    private static Main instance;
+    public static Main Instance;
 
     public static UnityEngine.Object leftHandPrefab, rightHandPrefab;
     public HandController
-        leftHand,
-        rightHand;
+        LeftHand,
+        RightHand;
 
     private void Awake()
     {
-        instance = this;
+        Instance = this;
         Configuration.Initialize(Config);
+        Harmony.CreateAndPatchAll(typeof(Main).Assembly);
         Utilla.Events.GameInitialized += async (_, _) =>
         {
             Log("Creating hands");
@@ -29,9 +31,9 @@ public class Main : BaseUnityPlugin
             leftHandPrefab = await assetLoader.LoadAsset("LeftHand");
             rightHandPrefab = await assetLoader.LoadAsset("RightHand");
 
-            rightHand = new GameObject("Hand Controllers").AddComponent<HandController>();
-            leftHand = rightHand.gameObject.AddComponent<HandController>();
-            leftHand.IsLeft = true;
+            RightHand = new GameObject("Hand Controllers").AddComponent<HandController>();
+            LeftHand = RightHand.gameObject.AddComponent<HandController>();
+            LeftHand.IsLeft = true;
 
             OnLeave();
         };
@@ -40,19 +42,19 @@ public class Main : BaseUnityPlugin
     [ModdedGamemodeJoin]
     private void OnJoin()
     {
-        leftHand.enabled = true;
-        rightHand.enabled = true;
+        LeftHand.enabled = true;
+        RightHand.enabled = true;
     }
 
     [ModdedGamemodeLeave]
     private void OnLeave()
     {
-        leftHand.enabled = false;
-        rightHand.enabled = false;
+        LeftHand.enabled = false;
+        RightHand.enabled = false;
     }
 
     public static void Log(object message, LogLevel level = LogLevel.Info)
     {
-        instance?.Logger.Log(level, message);
+        Instance.Logger.Log(level, message);
     }
 }
