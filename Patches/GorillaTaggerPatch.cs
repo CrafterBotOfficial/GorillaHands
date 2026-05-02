@@ -9,7 +9,7 @@ public static class GorillaTaggerPatch
     private static void Postfix()
     {
         Main.Log("Updating hand color");
-        Main.Instance.LeftHand.UpdateColor();
-        Main.Instance.RightHand.UpdateColor();
+        Main.Instance.LeftHand?.UpdateColor();
+        Main.Instance.RightHand?.UpdateColor();
     }
 }
