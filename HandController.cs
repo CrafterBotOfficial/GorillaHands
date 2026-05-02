@@ -67,6 +67,8 @@ public class HandController : MonoBehaviour
 
         HandState = HandState.Closed;
 
+        UpdateColor();
+
 #if DEBUG
         Main.Log("Debug enabled, creating debug objects", BepInEx.Logging.LogLevel.Message);
         targetPosition_DebugSphere = CreateDebugSphere(Color.white, removeCollider: true);
@@ -226,11 +228,12 @@ public class HandController : MonoBehaviour
         return playerPosition + playerToRealHandDirection * Configuration.ArmOffsetMultiplier.Value;
     }
 
-    // Chin, change this so it uses the player material. Im not sure if the asset will allow for it so its up to you
     public void UpdateColor()
     {
-        if (Follower is not null && handGeometry.GetComponent<SkinnedMeshRenderer>() is SkinnedMeshRenderer renderer)
+        if (GorillaTagger.Instance.offlineVRRig is not null && Follower is not null && handGeometry.GetComponent<SkinnedMeshRenderer>() is SkinnedMeshRenderer renderer)
+        {
             renderer.material.color = GorillaTagger.Instance.offlineVRRig.playerColor;
+        }
     }
 
     private void OnEnable() { Follower?.gameObject.SetActive(true); }
