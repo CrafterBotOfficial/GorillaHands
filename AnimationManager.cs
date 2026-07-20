@@ -8,6 +8,8 @@ public class AnimationManager
 {
     public HandController Controller;
 
+    public float OpenHandScale => 8f * Configuration.HandScaleMultiplier.Value;
+
     private InputManager inputManager;
     private const float debouncePeriodThreshold = .5f;
     private float debounceTime;
@@ -72,7 +74,7 @@ public class AnimationManager
         // hand scale
         float scaleTarget = Controller.HandState == HandState.Opening ? 0f : 1f;
         transitionT = Mathf.MoveTowards(transitionT, scaleTarget, Time.fixedDeltaTime * (Configuration.TransitionSpeed.Value * 0.6f));
-        float scale = Mathf.Lerp(8f, 0f, transitionT);
+        float scale = Mathf.Lerp(OpenHandScale, 0f, transitionT);
         Controller.Follower.localScale = Vector3.one * scale;
 
         // todo: hands should phase in (close) from there actual position, not the target pos. (when the hands get stuck it looks ugly)

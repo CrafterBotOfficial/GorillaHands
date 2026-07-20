@@ -24,7 +24,7 @@ public class HandController : MonoBehaviour
 
     private bool anchored;
     private Vector3 anchorPoint;
-    public int TerrainLayers = LayerMask.GetMask("Default", "Gorilla Object");
+    public int TerrainLayers = LayerMask.GetMask("Default", "Gorilla Object", "NoMirror");
 
     public Vector3 TargetPosition;
 
@@ -179,7 +179,7 @@ public class HandController : MonoBehaviour
     {
         var direction = -Follower.up; // from palm
         const float distance = .5f; // Todo: make configurable
-        const float backupDistance = .1f;
+        const float backupDistance = .1f; // todo: make scale with hand
 
         var ray = new Ray(Follower.position - direction * backupDistance, direction);
 

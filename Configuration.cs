@@ -1,5 +1,4 @@
-﻿using UnityEngine.XR;
-using BepInEx.Configuration;
+﻿using BepInEx.Configuration;
 
 namespace GorillaHands;
 
@@ -11,6 +10,7 @@ public static class Configuration
     public static ConfigEntry<float> VelocityMultiplierOnRelease;
     public static ConfigEntry<float> FollowForceMultiplier;
     public static ConfigEntry<float> DampingForceMultiplier;
+    public static ConfigEntry<float> HandScaleMultiplier;
 
     public static ConfigEntry<bool> HandCollisions;
     public static ConfigEntry<float> HandSpherecastRadius;
@@ -28,7 +28,8 @@ public static class Configuration
         ArmOffsetMultiplier = config.Bind("Multipliers", "Arm Offset", 12f);
         VelocityMultiplierOnRelease = config.Bind("Multipliers", "Booster", 2f, "The velocity multiplier for when you stop climbing.");
         FollowForceMultiplier = config.Bind("Multipliers", "Follow Force", 150f, "The force the hand uses to get to the target pos"); // 50
-        DampingForceMultiplier = config.Bind("Multipliers", "Damping Mult", 16f); // 8
+        DampingForceMultiplier = config.Bind("Multipliers", "Damping Mult", 16f);
+        HandScaleMultiplier = config.Bind("Multipliers", "Hand Scale Mult", 1f);
 
         HandCollisions = config.Bind("Collisions", "Hand collisions", true, "Can hand interact with other surfaces?");
         HandSpherecastRadius = config.Bind("Collisions", "Spherecast Radius", .55f, "Bigger number equals bigger snap.");

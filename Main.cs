@@ -6,7 +6,7 @@ using Utilla.Attributes;
 
 namespace GorillaHands;
 
-[BepInPlugin("com.crafterbot.gorillahands", "GorillaHands", "1.0.3.1")]
+[BepInPlugin("com.crafterbot.gorillahands", "GorillaHands", "1.0.4")]
 [BepInDependency("org.legoandmars.gorillatag.utilla", "1.6.0")]
 [ModdedGamemode]
 public class Main : BaseUnityPlugin

@@ -19,7 +19,6 @@ jobs:
       env:
         CI: TRUE 
       run: |
-          dotnet nuget add source https://git.crafterbot.com/api/packages/GorillaTagModding/nuget/index.json
           dotnet restore
           dotnet build -c Release
           
